@@ -1,0 +1,118 @@
+================================================================================
+  INFORMATICA POWERCENTER — REPOSITORY TABLES REFERENCE
+  Schema: SVC_INFA_PCRS_BLDM_BAT
+  Project: LineageIQ
+================================================================================
+
+
+1. OBJECT CONTAINER TABLES
+---------------------------
+These tell you what exists and where.
+
+  OPB_SUBJECT          Folders — top-level container for all objects
+  OPB_MAPPING          All mapping definitions
+  OPB_SESSION          All session definitions
+  OPB_WORKFLOW         All workflow definitions
+
+
+2. TRANSFORMATION TABLES
+--------------------------
+These contain the actual ETL logic.
+
+  OPB_WIDGET           Every transformation instance (Expression, Lookup, Filter etc.)
+  OPB_WIDGET_FIELD     Every port of every transformation — expressions live here
+  OPB_WIDGET_ATTR      Configuration settings (SQL override, lookup condition etc.)
+  OPB_WIDGET_TYPE      Decode table — converts WIDGET_TYPE number to readable name
+
+
+3. LINEAGE TABLES
+------------------
+These are the actual data flow connections.
+
+  OPB_LINK             Every connector — one row = one directed port-to-port edge
+  OPB_SRC              Source table definitions
+  OPB_SRC_FLD          Source table columns
+  OPB_TGT              Target table definitions
+  OPB_TGT_FLD          Target table columns
+
+
+4. EXECUTION ORDER TABLES
+---------------------------
+These tell you parallel vs sequential execution.
+
+  OPB_SESS_TASK_INST   PIPELINE and STAGE per transformation per session
+  OPB_TASK_INST        Task instances inside a workflow
+  OPB_TASK_LINK        Links between tasks — defines workflow execution order
+
+
+5. MAPLET TABLES
+-----------------
+These are needed for maplet resolution.
+
+  OPB_MAPPLET_INST     Links a maplet to its internal transformations
+
+
+6. PARAMETER AND CONNECTION TABLES
+-------------------------------------
+These resolve $$PARAMS and real schema/server names.
+
+  OPB_VAR              All $$PARAM and $$VAR variables per session
+  OPB_CNX              Database connections — resolves real schema and server names
+
+
+7. MX VIEWS  (Pre-built by Informatica — use these first)
+----------------------------------------------------------
+These do all the joining for you. One query gives complete results.
+
+  MX_SUBJECT_AREA_FIELD_LINEAGE    Complete source-to-target column lineage
+  MX_MAPPLET                       Maplet definitions
+  MX_MAPPLET_FIELD                 Maplet ports and expressions
+  MX_WORKFLOW                      Workflow details
+  MX_WORKFLOW_PARAM                Workflow-level parameters
+
+
+================================================================================
+  VERIFICATION QUERY
+  Run this to confirm which tables exist in your schema
+================================================================================
+
+SELECT table_name
+FROM   all_tables
+WHERE  owner = 'SVC_INFA_PCRS_BLDM_BAT'
+  AND  table_name IN (
+         'OPB_SUBJECT',    'OPB_MAPPING',       'OPB_SESSION',
+         'OPB_WORKFLOW',   'OPB_WIDGET',        'OPB_WIDGET_FIELD',
+         'OPB_WIDGET_ATTR','OPB_WIDGET_TYPE',   'OPB_LINK',
+         'OPB_SRC',        'OPB_SRC_FLD',       'OPB_TGT',
+         'OPB_TGT_FLD',    'OPB_SESS_TASK_INST','OPB_TASK_INST',
+         'OPB_TASK_LINK',  'OPB_MAPPLET_INST',  'OPB_VAR',
+         'OPB_CNX',        'MX_SUBJECT_AREA_FIELD_LINEAGE',
+         'MX_MAPPLET',     'MX_MAPPLET_FIELD',  'MX_WORKFLOW',
+         'MX_WORKFLOW_PARAM'
+       )
+ORDER  BY table_name;
+
+
+================================================================================
+  NOTES
+================================================================================
+
+  - Prefix all table names with SVC_INFA_PCRS_BLDM_BAT. if querying
+    from a different database user.
+    Example: SELECT * FROM SVC_INFA_PCRS_BLDM_BAT.OPB_WIDGET;
+
+  - OPB_WIDGET.WIDGET_TYPE stores a numeric code, not a name.
+    Join OPB_WIDGET_TYPE to decode it into a readable type name.
+
+  - OPB_LINK stores only field IDs (numbers).
+    Join OPB_WIDGET_FIELD twice (aliased) to get readable port names.
+
+  - $$PARAM variables in the XML are resolved from OPB_VAR (database)
+    or from the .par file on the Unix server.
+
+  - MX Views are the easiest starting point — they pre-join everything.
+    Start with MX_SUBJECT_AREA_FIELD_LINEAGE for full lineage in one query.
+
+================================================================================
+  LineageIQ Project  |  March 2026
+================================================================================
