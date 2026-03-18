@@ -1,0 +1,781 @@
+================================================================================
+  INFORMATICA POWERCENTER — REP_ VIEWS REFERENCE
+  Column Names + Data Lineage & Transformation Queries
+  Schema: SVC_INFA_PCRS_BLDM_BAT
+  Source: Informatica Official Documentation (PC 10.4 / 10.5)
+================================================================================
+
+
+IMPORTANT NOTE
+--------------
+All REP_ names are VIEWS (not tables). They are pre-built by Informatica on
+top of OPB_ tables. Always prefer REP_ views — they are simpler, officially
+supported, and automatically filter to the latest active version of each object.
+
+Prefix every view name with your schema if querying from a different user:
+  SVC_INFA_PCRS_BLDM_BAT.REP_ALL_MAPPINGS
+
+
+================================================================================
+  SECTION A — VIEW COLUMN REFERENCE
+================================================================================
+
+
+────────────────────────────────────────────────────────────────────────────────
+  1. REP_ALL_MAPPINGS
+     Purpose: List of all mappings with folder and version information
+────────────────────────────────────────────────────────────────────────────────
+
+  MAPPING_ID          Unique mapping identifier
+  MAPPING_NAME        Mapping name
+  SUBJECT_AREA        Folder name the mapping belongs to
+  PARENT_SUBJECT_AREA Parent folder (for shared/shortcut objects)
+  VERSION_NUMBER      Version number of the mapping
+  VERSION_STATUS      Status: Active, Deleted, Checked Out
+  IS_VALID            1 = valid, 0 = invalid mapping
+  LAST_SAVED          Date mapping was last saved
+  SAVED_BY            User who last saved the mapping
+  CHECKIN_COMMENTS    Version control check-in comment
+  DESCRIPTION         Mapping description
+
+
+────────────────────────────────────────────────────────────────────────────────
+  2. REP_ALL_MAPPLETS
+     Purpose: List of all mapplets
+────────────────────────────────────────────────────────────────────────────────
+
+  WIDGET_ID           Unique mapplet identifier
+  WIDGET_NAME         Mapplet name (e.g. ep_CRC_GEN)
+  SUBJECT_AREA        Folder name
+  VERSION_NUMBER      Version number
+  IS_VALID            1 = valid
+  LAST_SAVED          Last saved date
+  DESCRIPTION         Mapplet description
+
+
+────────────────────────────────────────────────────────────────────────────────
+  3. REP_TBL_MAPPING
+     Purpose: Source-to-target table level mapping.
+              One row per source-table/target-table pair per mapping.
+              THE STARTING POINT FOR TABLE-LEVEL LINEAGE.
+────────────────────────────────────────────────────────────────────────────────
+
+  SUBJECT_AREA        Folder name
+  MAPPING_NAME        Mapping name
+  SOURCE_NAME         Source table name
+  TARGET_NAME         Target table name
+  EXPRESSION          Table-level combined transformation expression
+  MAPPING_ID          Mapping identifier (use to join to other views)
+
+
+────────────────────────────────────────────────────────────────────────────────
+  4. REP_FLD_MAPPING
+     Purpose: Column-level source-to-target lineage with expressions.
+              THE MOST IMPORTANT VIEW FOR DATA LINEAGE.
+              Companion to REP_TBL_MAPPING — adds field-level detail.
+────────────────────────────────────────────────────────────────────────────────
+
+  SUBJECT_AREA        Folder name
+  MAPPING_NAME        Mapping name
+  SOURCE_NAME         Source table name
+  SOURCE_FLD_NAME     Source column name
+  SOURCE_FLD_DTYPE    Source column datatype
+  SOURCE_FLD_PREC     Source column precision
+  SOURCE_FLD_SCALE    Source column scale
+  TARGET_NAME         Target table name
+  TARGET_FLD_NAME     Target column name
+  TARGET_FLD_DTYPE    Target column datatype
+  TARGET_FLD_PREC     Target column precision
+  TARGET_FLD_SCALE    Target column scale
+  TARGET_FLD_PKEY     1 = target column is a primary key
+  EXPRESSION          Transformation expression/formula for this column
+  MAPPING_ID          Mapping identifier
+
+
+────────────────────────────────────────────────────────────────────────────────
+  5. REP_SRC_MAPPING
+     Purpose: Shows all source tables used in a mapping.
+              Does NOT include target information.
+              Use REP_TBL_MAPPING for full source+target relationship.
+────────────────────────────────────────────────────────────────────────────────
+
+  SUBJECT_AREA        Folder name
+  MAPPING_NAME        Mapping name
+  SOURCE_NAME         Source table name
+  DB_TYPE             Database type (Oracle, SQL Server etc.)
+  MAPPING_ID          Mapping identifier
+
+
+────────────────────────────────────────────────────────────────────────────────
+  6. REP_TARG_MAPPING
+     Purpose: Target table expressions from all contributing transformations.
+              Does NOT include source information.
+              Join to REP_TBL_MAPPING by MAPPING_NAME for full picture.
+────────────────────────────────────────────────────────────────────────────────
+
+  SUBJECT_AREA        Folder name
+  MAPPING_NAME        Mapping name
+  TARGET_NAME         Target table name
+  EXPRESSION          Compound transformation expression for this target
+  MAPPING_ID          Mapping identifier
+
+
+────────────────────────────────────────────────────────────────────────────────
+  7. REP_SRC_FLD_MAP
+     Purpose: Source field details within a mapping
+────────────────────────────────────────────────────────────────────────────────
+
+  SUBJECT_AREA        Folder name
+  MAPPING_NAME        Mapping name
+  SOURCE_NAME         Source table name
+  FIELD_NAME          Source column name
+  DATATYPE            Column datatype
+  PREC                Precision
+  SCALE               Scale
+  NULLABLE            Nullable flag
+
+
+────────────────────────────────────────────────────────────────────────────────
+  8. REP_TARG_FLD_MAP
+     Purpose: Target field details within a mapping
+────────────────────────────────────────────────────────────────────────────────
+
+  SUBJECT_AREA        Folder name
+  MAPPING_NAME        Mapping name
+  TARGET_NAME         Target table name
+  FIELD_NAME          Target column name
+  DATATYPE            Column datatype
+  PREC                Precision
+  SCALE               Scale
+  PKEY                1 = primary key
+  FKEY                1 = foreign key
+
+
+────────────────────────────────────────────────────────────────────────────────
+  9. REP_ALL_TRANSFORMS
+     Purpose: All transformation definitions across all folders
+────────────────────────────────────────────────────────────────────────────────
+
+  SUBJECT_AREA        Folder name
+  WIDGET_ID           Transformation unique ID
+  WIDGET_NAME         Transformation name
+  WIDGET_TYPE_NAME    Transformation type in readable text
+                      (Expression, Filter, Lookup Procedure,
+                       Source Qualifier, Update Strategy, Router,
+                       Aggregator, Joiner, Sequence, Sorter,
+                       Stored Procedure, Normalizer, Mapplet)
+  REUSABLE            1 = reusable transformation
+  VERSION_NUMBER      Version number
+  PARENT_WIDGET_NAME  Parent mapplet name (if inside a mapplet)
+  PARENT_SUBJECT_AREA Folder of parent mapplet
+
+
+────────────────────────────────────────────────────────────────────────────────
+  10. REP_WIDGET_INST
+      Purpose: Transformation instances within a specific mapping.
+               One row per transformation placed on the mapping canvas.
+               KEY JOIN BRIDGE between mappings and transformations.
+────────────────────────────────────────────────────────────────────────────────
+
+  MAPPING_ID          Links to REP_ALL_MAPPINGS
+  WIDGET_ID           Links to REP_ALL_TRANSFORMS and REP_WIDGET_FIELD
+  INSTANCE_NAME       The instance name on the canvas (may differ from widget name)
+  WIDGET_TYPE         Numeric type code
+  WIDGET_TYPE_NAME    Readable type name
+  REUSABLE            1 = reusable
+  VERSION_NUMBER      Version
+  IS_TARGET_LOAD_ORDER 1 = participates in target load order
+
+
+────────────────────────────────────────────────────────────────────────────────
+  11. REP_WIDGET_FIELD
+      Purpose: Field (port) level details for transformations.
+               All ports and their expressions live here.
+               THE TABLE FOR TRANSFORMATION LOGIC EXTRACTION.
+────────────────────────────────────────────────────────────────────────────────
+
+  WIDGET_ID           Links to REP_WIDGET_INST
+  FIELD_ID            Unique port identifier
+  FIELD_NAME          Port name
+  WIDGET_TYPE         Numeric type code of parent transformation
+  FIELD_TYPE          Port direction: 0=Input, 1=Output, 2=Input/Output,
+                                      3=Variable, 4=Local variable
+  DATATYPE            Port datatype
+  PREC                Precision
+  SCALE               Scale
+  DEFAULT_VALUE       Default value if port has no incoming connection
+  EXPRESSION          THE FORMULA — this is the business logic
+  IS_PARTITION_KEY    1 = used as partition key
+  FIELD_ORDER         Sequence number of port in the transformation
+
+
+────────────────────────────────────────────────────────────────────────────────
+  12. REP_WIDGET_ATTR
+      Purpose: Configuration attributes (settings) for transformations.
+               SQL overrides, lookup conditions, filter conditions,
+               update strategies — all stored here as name/value pairs.
+────────────────────────────────────────────────────────────────────────────────
+
+  WIDGET_ID           Links to REP_WIDGET_INST
+  WIDGET_TYPE         Numeric type code
+  ATTR_ID             Attribute sequence number
+  ATTR_NAME           Setting name (e.g. "Sql Query", "Lookup condition",
+                       "Filter Condition", "Update Strategy Expression",
+                       "Lookup table name", "Lookup cache persistent")
+  ATTR_DATATYPE       Datatype of attribute value (1=Int, 2=String, 3=Text)
+  ATTR_TYPE           1=transformation attr, 2=instance attr, 3=session attr
+  ATTR_VALUE          The actual value (the SQL, the condition, the formula)
+  ATTR_DESCRIPTION    Human-readable description of what this attribute does
+
+
+────────────────────────────────────────────────────────────────────────────────
+  13. REP_WIDGET_DEP
+      Purpose: Dependencies between transformation instances in a mapping.
+               This is the connector/lineage edge table at instance level.
+────────────────────────────────────────────────────────────────────────────────
+
+  MAPPING_ID          Mapping identifier
+  FROM_INSTANCE_ID    Source transformation instance ID
+  FROM_FIELD_ID       Source port ID
+  TO_INSTANCE_ID      Destination transformation instance ID
+  TO_FIELD_ID         Destination port ID
+  VERSION_NUMBER      Version
+
+
+────────────────────────────────────────────────────────────────────────────────
+  14. REP_MAPPING_CONN_PORTS
+      Purpose: All CONNECTED ports in a mapping (ports with connectors).
+               Use to find which ports have data flowing through them.
+────────────────────────────────────────────────────────────────────────────────
+
+  SUBJECT_AREA        Folder name
+  MAPPING_NAME        Mapping name
+  INSTANCE_NAME       Transformation instance name
+  WIDGET_TYPE_NAME    Transformation type
+  FIELD_NAME          Port name
+  FIELD_TYPE          Port direction
+  DATATYPE            Datatype
+  EXPRESSION          Expression if any
+
+
+────────────────────────────────────────────────────────────────────────────────
+  15. REP_MAPPING_UNCONN_PORTS
+      Purpose: All UNCONNECTED ports in a mapping (no data flowing).
+               Use to find mapping gaps and documentation issues.
+────────────────────────────────────────────────────────────────────────────────
+
+  SUBJECT_AREA        Folder name
+  MAPPING_NAME        Mapping name
+  INSTANCE_NAME       Transformation instance name
+  WIDGET_TYPE_NAME    Transformation type
+  FIELD_NAME          Port name
+  FIELD_TYPE          Port direction
+
+
+────────────────────────────────────────────────────────────────────────────────
+  16. REP_ALL_SOURCES  /  REP_ALL_SOURCE_FLDS
+      Purpose: All source table and column definitions
+────────────────────────────────────────────────────────────────────────────────
+
+  REP_ALL_SOURCES:
+    SUBJECT_AREA      Folder name
+    SOURCE_ID         Source unique ID
+    SOURCE_NAME       Table name
+    OWNER_NAME        Schema owner (may be $$PARAM)
+    DB_TYPE           Database type
+    VERSION_NUMBER    Version
+
+  REP_ALL_SOURCE_FLDS:
+    SUBJECT_AREA      Folder name
+    SOURCE_NAME       Table name
+    FIELD_NAME        Column name
+    DATATYPE          Column datatype
+    PREC              Precision
+    SCALE             Scale
+    NULLABLE          Nullable flag
+    FIELD_ORDER       Column sequence number
+
+
+────────────────────────────────────────────────────────────────────────────────
+  17. REP_ALL_TARGETS  /  REP_ALL_TARGET_FLDS
+      Purpose: All target table and column definitions
+────────────────────────────────────────────────────────────────────────────────
+
+  REP_ALL_TARGETS:
+    SUBJECT_AREA      Folder name
+    TARGET_ID         Target unique ID
+    TARGET_NAME       Table name
+    OWNER_NAME        Schema owner
+    DB_TYPE           Database type
+    VERSION_NUMBER    Version
+
+  REP_ALL_TARGET_FLDS:
+    SUBJECT_AREA      Folder name
+    TARGET_NAME       Table name
+    FIELD_NAME        Column name
+    DATATYPE          Datatype
+    PREC              Precision
+    SCALE             Scale
+    NULLABLE          Nullable flag
+    PKEY              1 = primary key
+    FKEY              1 = foreign key
+    FIELD_ORDER       Column sequence number
+
+
+────────────────────────────────────────────────────────────────────────────────
+  18. REP_LOAD_SESSIONS  (also known as REP_ALL_SESSIONS in some versions)
+      Purpose: All sessions with their linked mappings
+────────────────────────────────────────────────────────────────────────────────
+
+  SESSION_ID          Session unique ID
+  SESSION_NAME        Session name
+  MAPPING_ID          Links to the mapping this session runs
+  MAPPING_NAME        Mapping name (denormalised for convenience)
+  SUBJECT_AREA        Folder name
+  IS_VALID            1 = valid session
+  VERSION_NUMBER      Version
+
+
+────────────────────────────────────────────────────────────────────────────────
+  19. REP_DATABASE_DEFS
+      Purpose: All database connection definitions.
+               Resolves real server and schema names.
+────────────────────────────────────────────────────────────────────────────────
+
+  DBDNAM              Connection name (what you see in session config)
+  DBTYPE_NAME         Database type (Oracle, SQL Server, DB2 etc.)
+  SERVER_NAME         Physical server name
+  DATABASE_NAME       Database/service name
+  SCHEMA_NAME         Schema name
+
+
+────────────────────────────────────────────────────────────────────────────────
+  20. REP_VERSION_PROPS
+      Purpose: Version history for all objects — who changed what and when
+────────────────────────────────────────────────────────────────────────────────
+
+  SUBJECT_ID          Folder ID
+  OBJECT_NAME         Object name
+  OBJECT_TYPE         Numeric type code
+  VERSION_NUMBER      Version number
+  LAST_SAVED          Date of this version
+  SAVED_BY            User who saved this version
+  COMMENTS            Check-in comment
+
+
+================================================================================
+  SECTION B — DATA LINEAGE QUERIES (Using REP_ Views)
+================================================================================
+
+
+────────────────────────────────────────────────────────────────────────────────
+  Q1. FULL COLUMN-LEVEL LINEAGE FOR A MAPPING
+      Best query to start with. One row per source-col to target-col path.
+────────────────────────────────────────────────────────────────────────────────
+
+SELECT
+    SUBJECT_AREA        AS folder_name,
+    MAPPING_NAME,
+    SOURCE_NAME         AS source_table,
+    SOURCE_FLD_NAME     AS source_column,
+    SOURCE_FLD_DTYPE    AS source_datatype,
+    TARGET_NAME         AS target_table,
+    TARGET_FLD_NAME     AS target_column,
+    TARGET_FLD_DTYPE    AS target_datatype,
+    TARGET_FLD_PKEY     AS is_primary_key,
+    EXPRESSION          AS transformation_logic
+FROM REP_FLD_MAPPING
+WHERE MAPPING_NAME = 'M_TPR_CUST_BAL'
+ORDER BY TARGET_FLD_NAME, SOURCE_FLD_NAME;
+
+
+────────────────────────────────────────────────────────────────────────────────
+  Q2. TABLE-LEVEL LINEAGE — ALL MAPPINGS IN A FOLDER
+      Shows source table → target table for every mapping.
+────────────────────────────────────────────────────────────────────────────────
+
+SELECT DISTINCT
+    SUBJECT_AREA        AS folder_name,
+    MAPPING_NAME,
+    SOURCE_NAME         AS source_table,
+    TARGET_NAME         AS target_table
+FROM REP_TBL_MAPPING
+WHERE SUBJECT_AREA = 'ETL_PROJECT'
+ORDER BY MAPPING_NAME, SOURCE_NAME;
+
+
+────────────────────────────────────────────────────────────────────────────────
+  Q3. SOURCE AND TARGET TABLES FOR ALL MAPPINGS (complete overview)
+────────────────────────────────────────────────────────────────────────────────
+
+SELECT DISTINCT
+    SUBJECT_AREA,
+    SOURCE_NAME,
+    TARGET_NAME,
+    MAPPING_NAME
+FROM REP_TBL_MAPPING
+ORDER BY 1, 2, 3, 4;
+
+
+────────────────────────────────────────────────────────────────────────────────
+  Q4. FULL LINEAGE WITH TRANSFORMATION CHAIN
+      Source column → transformation name + type → target column
+────────────────────────────────────────────────────────────────────────────────
+
+SELECT
+    fm.SUBJECT_AREA         AS folder_name,
+    fm.MAPPING_NAME,
+    fm.SOURCE_NAME          AS source_table,
+    fm.SOURCE_FLD_NAME      AS source_column,
+    wi.INSTANCE_NAME        AS transformation_name,
+    wi.WIDGET_TYPE_NAME     AS transformation_type,
+    fm.TARGET_NAME          AS target_table,
+    fm.TARGET_FLD_NAME      AS target_column,
+    fm.EXPRESSION           AS expression
+FROM REP_FLD_MAPPING    fm
+JOIN REP_ALL_MAPPINGS   m  ON fm.MAPPING_ID    = m.MAPPING_ID
+JOIN REP_WIDGET_INST    wi ON wi.MAPPING_ID    = m.MAPPING_ID
+WHERE fm.MAPPING_NAME = 'M_TPR_CUST_BAL'
+ORDER BY fm.TARGET_FLD_NAME;
+
+
+────────────────────────────────────────────────────────────────────────────────
+  Q5. UNCONNECTED PORTS — FIND LINEAGE GAPS
+      Shows every port in a mapping that has no data flowing through it.
+────────────────────────────────────────────────────────────────────────────────
+
+SELECT
+    SUBJECT_AREA,
+    MAPPING_NAME,
+    INSTANCE_NAME       AS transformation_name,
+    WIDGET_TYPE_NAME    AS transformation_type,
+    FIELD_NAME          AS port_name,
+    FIELD_TYPE          AS port_direction
+FROM REP_MAPPING_UNCONN_PORTS
+WHERE MAPPING_NAME = 'M_TPR_CUST_BAL'
+ORDER BY INSTANCE_NAME, FIELD_NAME;
+
+
+────────────────────────────────────────────────────────────────────────────────
+  Q6. IMPACT ANALYSIS — FIND ALL MAPPINGS READING FROM A TABLE
+      "If source table X changes, which mappings are affected?"
+────────────────────────────────────────────────────────────────────────────────
+
+SELECT DISTINCT
+    SUBJECT_AREA,
+    MAPPING_NAME,
+    SOURCE_NAME
+FROM REP_SRC_MAPPING
+WHERE UPPER(SOURCE_NAME) = UPPER('TPR_CUSTOMER')
+ORDER BY SUBJECT_AREA, MAPPING_NAME;
+
+
+────────────────────────────────────────────────────────────────────────────────
+  Q7. IMPACT ANALYSIS — FIND ALL MAPPINGS WRITING TO A TABLE
+────────────────────────────────────────────────────────────────────────────────
+
+SELECT DISTINCT
+    fm.SUBJECT_AREA,
+    fm.MAPPING_NAME,
+    fm.TARGET_NAME
+FROM REP_FLD_MAPPING fm
+WHERE UPPER(fm.TARGET_NAME) = UPPER('TT_CUST_BAL_STG')
+ORDER BY fm.SUBJECT_AREA, fm.MAPPING_NAME;
+
+
+────────────────────────────────────────────────────────────────────────────────
+  Q8. IMPACT ANALYSIS — FIND ALL EXPRESSIONS USING A SPECIFIC COLUMN
+      "Every formula that references ACCT_BAL_AMT anywhere"
+────────────────────────────────────────────────────────────────────────────────
+
+SELECT
+    m.SUBJECT_AREA      AS folder_name,
+    m.MAPPING_NAME,
+    wi.INSTANCE_NAME    AS transformation_name,
+    wi.WIDGET_TYPE_NAME AS transformation_type,
+    wf.FIELD_NAME       AS port_name,
+    wf.EXPRESSION
+FROM REP_WIDGET_FIELD  wf
+JOIN REP_WIDGET_INST   wi ON wf.WIDGET_ID   = wi.WIDGET_ID
+JOIN REP_ALL_MAPPINGS  m  ON wi.MAPPING_ID  = m.MAPPING_ID
+WHERE UPPER(wf.EXPRESSION) LIKE UPPER('%ACCT_BAL_AMT%')
+  AND wf.EXPRESSION IS NOT NULL
+ORDER BY m.SUBJECT_AREA, m.MAPPING_NAME;
+
+
+================================================================================
+  SECTION C — TRANSFORMATION QUERIES (Using REP_ Views)
+================================================================================
+
+
+────────────────────────────────────────────────────────────────────────────────
+  Q9. ALL TRANSFORMATIONS IN A MAPPING WITH TYPE
+────────────────────────────────────────────────────────────────────────────────
+
+SELECT
+    m.SUBJECT_AREA      AS folder_name,
+    m.MAPPING_NAME,
+    wi.INSTANCE_NAME    AS transformation_name,
+    wi.WIDGET_TYPE_NAME AS transformation_type,
+    wi.REUSABLE
+FROM REP_WIDGET_INST   wi
+JOIN REP_ALL_MAPPINGS  m  ON wi.MAPPING_ID = m.MAPPING_ID
+WHERE m.MAPPING_NAME = 'M_TPR_CUST_BAL'
+ORDER BY wi.INSTANCE_NAME;
+
+
+────────────────────────────────────────────────────────────────────────────────
+  Q10. ALL PORTS AND EXPRESSIONS IN A MAPPING
+       Every port of every transformation with its formula.
+────────────────────────────────────────────────────────────────────────────────
+
+SELECT
+    m.MAPPING_NAME,
+    wi.INSTANCE_NAME    AS transformation_name,
+    wi.WIDGET_TYPE_NAME AS transformation_type,
+    wf.FIELD_NAME       AS port_name,
+    wf.FIELD_TYPE       AS port_direction,
+    wf.DATATYPE,
+    wf.PREC             AS precision,
+    wf.EXPRESSION
+FROM REP_WIDGET_FIELD  wf
+JOIN REP_WIDGET_INST   wi ON wf.WIDGET_ID   = wi.WIDGET_ID
+JOIN REP_ALL_MAPPINGS  m  ON wi.MAPPING_ID  = m.MAPPING_ID
+WHERE m.MAPPING_NAME   = 'M_TPR_CUST_BAL'
+ORDER BY wi.INSTANCE_NAME, wf.FIELD_ORDER;
+
+
+────────────────────────────────────────────────────────────────────────────────
+  Q11. ALL CONFIGURATION ATTRIBUTES (SQL, CONDITIONS, STRATEGIES)
+       Gets the SQL override, filter condition, lookup condition etc.
+────────────────────────────────────────────────────────────────────────────────
+
+SELECT
+    m.MAPPING_NAME,
+    wi.INSTANCE_NAME    AS transformation_name,
+    wi.WIDGET_TYPE_NAME AS transformation_type,
+    wa.ATTR_NAME,
+    wa.ATTR_VALUE
+FROM REP_WIDGET_ATTR   wa
+JOIN REP_WIDGET_INST   wi ON wa.WIDGET_ID   = wi.WIDGET_ID
+JOIN REP_ALL_MAPPINGS  m  ON wi.MAPPING_ID  = m.MAPPING_ID
+WHERE m.MAPPING_NAME   = 'M_TPR_CUST_BAL'
+  AND wa.ATTR_VALUE IS NOT NULL
+ORDER BY wi.INSTANCE_NAME, wa.ATTR_NAME;
+
+
+────────────────────────────────────────────────────────────────────────────────
+  Q12. SOURCE QUALIFIER SQL OVERRIDES ACROSS ALL MAPPINGS IN FOLDER
+────────────────────────────────────────────────────────────────────────────────
+
+SELECT DISTINCT
+    m.SUBJECT_AREA      AS folder_name,
+    m.MAPPING_NAME,
+    wi.INSTANCE_NAME    AS sq_name,
+    wa.ATTR_VALUE       AS sql_override
+FROM REP_WIDGET_ATTR   wa
+JOIN REP_WIDGET_INST   wi ON wa.WIDGET_ID   = wi.WIDGET_ID
+                          AND wa.WIDGET_TYPE = wi.WIDGET_TYPE
+JOIN REP_ALL_MAPPINGS  m  ON wi.MAPPING_ID  = m.MAPPING_ID
+WHERE wi.WIDGET_TYPE_NAME = 'Source Qualifier'
+  AND wa.ATTR_NAME        = 'Sql Query'
+  AND wa.ATTR_VALUE IS NOT NULL
+  AND m.SUBJECT_AREA      = 'ETL_PROJECT'
+ORDER BY m.MAPPING_NAME;
+
+
+────────────────────────────────────────────────────────────────────────────────
+  Q13. ALL LOOKUP TRANSFORMATIONS WITH TABLE AND CONDITION
+────────────────────────────────────────────────────────────────────────────────
+
+SELECT DISTINCT
+    m.SUBJECT_AREA          AS folder_name,
+    m.MAPPING_NAME,
+    wi.INSTANCE_NAME        AS lookup_name,
+    wa_tbl.ATTR_VALUE       AS lookup_table,
+    wa_cond.ATTR_VALUE      AS lookup_condition,
+    wa_cache.ATTR_VALUE     AS cache_type
+FROM REP_WIDGET_INST    wi
+JOIN REP_ALL_MAPPINGS   m       ON wi.MAPPING_ID  = m.MAPPING_ID
+LEFT JOIN REP_WIDGET_ATTR wa_tbl
+    ON wa_tbl.WIDGET_ID   = wi.WIDGET_ID
+   AND wa_tbl.ATTR_DESCRIPTION LIKE 'Lookup source table'
+LEFT JOIN REP_WIDGET_ATTR wa_cond
+    ON wa_cond.WIDGET_ID  = wi.WIDGET_ID
+   AND wa_cond.ATTR_NAME  = 'Lookup condition'
+LEFT JOIN REP_WIDGET_ATTR wa_cache
+    ON wa_cache.WIDGET_ID = wi.WIDGET_ID
+   AND wa_cache.ATTR_NAME = 'Lookup cache persistent'
+WHERE wi.WIDGET_TYPE_NAME = 'Lookup Procedure'
+  AND m.SUBJECT_AREA      = 'ETL_PROJECT'
+ORDER BY m.MAPPING_NAME, wi.INSTANCE_NAME;
+
+
+────────────────────────────────────────────────────────────────────────────────
+  Q14. ALL FILTER TRANSFORMATION CONDITIONS
+────────────────────────────────────────────────────────────────────────────────
+
+SELECT
+    m.SUBJECT_AREA      AS folder_name,
+    m.MAPPING_NAME,
+    wi.INSTANCE_NAME    AS filter_name,
+    wa.ATTR_VALUE       AS filter_condition
+FROM REP_WIDGET_ATTR   wa
+JOIN REP_WIDGET_INST   wi ON wa.WIDGET_ID   = wi.WIDGET_ID
+JOIN REP_ALL_MAPPINGS  m  ON wi.MAPPING_ID  = m.MAPPING_ID
+WHERE wi.WIDGET_TYPE_NAME = 'Filter'
+  AND wa.ATTR_NAME        = 'Filter Condition'
+  AND m.SUBJECT_AREA      = 'ETL_PROJECT'
+ORDER BY m.MAPPING_NAME;
+
+
+────────────────────────────────────────────────────────────────────────────────
+  Q15. ALL UPDATE STRATEGY EXPRESSIONS
+────────────────────────────────────────────────────────────────────────────────
+
+SELECT
+    m.SUBJECT_AREA      AS folder_name,
+    m.MAPPING_NAME,
+    wi.INSTANCE_NAME    AS update_strategy_name,
+    wa.ATTR_VALUE       AS strategy_expression
+FROM REP_WIDGET_ATTR   wa
+JOIN REP_WIDGET_INST   wi ON wa.WIDGET_ID   = wi.WIDGET_ID
+JOIN REP_ALL_MAPPINGS  m  ON wi.MAPPING_ID  = m.MAPPING_ID
+WHERE wi.WIDGET_TYPE_NAME = 'Update Strategy'
+  AND wa.ATTR_NAME        = 'Update Strategy Expression'
+  AND m.SUBJECT_AREA      = 'ETL_PROJECT'
+ORDER BY m.MAPPING_NAME;
+
+
+────────────────────────────────────────────────────────────────────────────────
+  Q16. ALL MAPPLETS WITH THEIR PORTS AND EXPRESSIONS
+────────────────────────────────────────────────────────────────────────────────
+
+SELECT
+    m.SUBJECT_AREA      AS folder_name,
+    m.MAPPING_NAME,
+    wi.INSTANCE_NAME    AS maplet_instance_name,
+    wf.FIELD_NAME       AS port_name,
+    wf.FIELD_TYPE       AS port_direction,
+    wf.DATATYPE,
+    wf.EXPRESSION
+FROM REP_WIDGET_INST   wi
+JOIN REP_ALL_MAPPINGS  m  ON wi.MAPPING_ID  = m.MAPPING_ID
+JOIN REP_WIDGET_FIELD  wf ON wf.WIDGET_ID   = wi.WIDGET_ID
+WHERE wi.WIDGET_TYPE_NAME = 'Mapplet'
+  AND m.SUBJECT_AREA      = 'ETL_PROJECT'
+ORDER BY m.MAPPING_NAME, wi.INSTANCE_NAME, wf.FIELD_ORDER;
+
+
+────────────────────────────────────────────────────────────────────────────────
+  Q17. LIST ALL TRANSFORMATION TYPES USED IN A FOLDER (SUMMARY)
+────────────────────────────────────────────────────────────────────────────────
+
+SELECT
+    SUBJECT_AREA        AS folder_name,
+    WIDGET_TYPE_NAME    AS transformation_type,
+    COUNT(*)            AS count
+FROM REP_ALL_TRANSFORMS
+WHERE SUBJECT_AREA = 'ETL_PROJECT'
+GROUP BY SUBJECT_AREA, WIDGET_TYPE_NAME
+ORDER BY SUBJECT_AREA, COUNT(*) DESC;
+
+
+────────────────────────────────────────────────────────────────────────────────
+  Q18. PORT-TO-PORT DEPENDENCY (LINEAGE EDGES AT PORT LEVEL)
+       Replaces OPB_LINK — shows FROM_INSTANCE.FROM_PORT → TO_INSTANCE.TO_PORT
+────────────────────────────────────────────────────────────────────────────────
+
+SELECT
+    m.MAPPING_NAME,
+    from_wi.INSTANCE_NAME   AS from_transformation,
+    from_wf.FIELD_NAME      AS from_port,
+    to_wi.INSTANCE_NAME     AS to_transformation,
+    to_wf.FIELD_NAME        AS to_port
+FROM REP_WIDGET_DEP     dep
+JOIN REP_WIDGET_INST    from_wi ON dep.FROM_INSTANCE_ID = from_wi.INSTANCE_ID
+                                AND dep.MAPPING_ID       = from_wi.MAPPING_ID
+JOIN REP_WIDGET_FIELD   from_wf ON dep.FROM_FIELD_ID    = from_wf.FIELD_ID
+JOIN REP_WIDGET_INST    to_wi   ON dep.TO_INSTANCE_ID   = to_wi.INSTANCE_ID
+                                AND dep.MAPPING_ID       = to_wi.MAPPING_ID
+JOIN REP_WIDGET_FIELD   to_wf   ON dep.TO_FIELD_ID      = to_wf.FIELD_ID
+JOIN REP_ALL_MAPPINGS   m       ON dep.MAPPING_ID        = m.MAPPING_ID
+WHERE m.MAPPING_NAME = 'M_TPR_CUST_BAL'
+ORDER BY from_wi.INSTANCE_NAME, from_wf.FIELD_NAME;
+
+
+================================================================================
+  SECTION D — USEFUL UTILITY QUERIES
+================================================================================
+
+
+-- List all mappings in a folder
+SELECT MAPPING_NAME, IS_VALID, LAST_SAVED, SAVED_BY
+FROM   REP_ALL_MAPPINGS
+WHERE  SUBJECT_AREA = 'ETL_PROJECT'
+ORDER  BY MAPPING_NAME;
+
+-- List all mapplets in a folder
+SELECT WIDGET_NAME, IS_VALID, LAST_SAVED
+FROM   REP_ALL_MAPPLETS
+WHERE  SUBJECT_AREA = 'ETL_PROJECT'
+ORDER  BY WIDGET_NAME;
+
+-- Count of source tables used across all mappings
+SELECT SOURCE_NAME, COUNT(*) AS usage_count
+FROM   REP_TBL_MAPPING
+GROUP  BY SOURCE_NAME
+ORDER  BY usage_count DESC;
+
+-- List all invalid mappings
+SELECT SUBJECT_AREA, MAPPING_NAME, LAST_SAVED, SAVED_BY
+FROM   REP_ALL_MAPPINGS
+WHERE  IS_VALID = 0
+ORDER  BY SUBJECT_AREA, MAPPING_NAME;
+
+-- Object change history (who changed what and when)
+SELECT v.OBJECT_NAME, v.VERSION_NUMBER, v.LAST_SAVED,
+       v.SAVED_BY, v.COMMENTS
+FROM   REP_VERSION_PROPS v
+JOIN   REP_SUBJECT       s ON v.SUBJECT_ID = s.SUBJECT_ID
+WHERE  s.SUBJECT_AREA = 'ETL_PROJECT'
+ORDER  BY v.OBJECT_NAME, v.VERSION_NUMBER DESC;
+
+-- All database connections
+SELECT DBDNAM AS connection_name, DBTYPE_NAME, SERVER_NAME,
+       DATABASE_NAME, SCHEMA_NAME
+FROM   REP_DATABASE_DEFS
+ORDER  BY DBDNAM;
+
+-- Check if REP_ views exist in your schema
+SELECT view_name
+FROM   all_views
+WHERE  owner     = 'SVC_INFA_PCRS_BLDM_BAT'
+  AND  view_name LIKE 'REP_%'
+ORDER  BY view_name;
+
+
+================================================================================
+  QUICK REFERENCE — WHICH QUERY TO USE FOR WHAT
+================================================================================
+
+  Need                                     Use
+  ─────────────────────────────────────    ────────────────────────────────
+  Column-level lineage for a mapping       Q1  REP_FLD_MAPPING
+  Table-level lineage for a mapping        Q2  REP_TBL_MAPPING
+  Full chain incl. transformation names    Q4  REP_FLD_MAPPING + WIDGET_INST
+  Unconnected ports (lineage gaps)         Q5  REP_MAPPING_UNCONN_PORTS
+  Which mappings read table X              Q6  REP_SRC_MAPPING
+  Which mappings write to table X          Q7  REP_FLD_MAPPING
+  Which expressions use column X           Q8  REP_WIDGET_FIELD LIKE search
+  All transforms in a mapping              Q9  REP_WIDGET_INST
+  All ports and formulas                   Q10 REP_WIDGET_FIELD
+  SQL overrides, filter conditions         Q11 REP_WIDGET_ATTR
+  Lookup tables and conditions             Q13 REP_WIDGET_ATTR filtered
+  Maplet ports and expressions             Q16 REP_WIDGET_INST + WIDGET_FIELD
+  Port-to-port connector edges             Q18 REP_WIDGET_DEP
+
+
+================================================================================
+  LineageIQ Project  |  March 2026
+================================================================================
