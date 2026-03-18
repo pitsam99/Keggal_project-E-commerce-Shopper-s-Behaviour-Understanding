@@ -1,0 +1,158 @@
+================================================================================
+  INFORMATICA POWERCENTER
+  Source Table + Column → Transformation Logic → Target Table + Column
+  Complete Lineage Query Reference
+  Schema: SVC_INFA_PCRS_BLDM_BAT
+================================================================================
+
+
+================================================================================
+  QUERY 1 — SIMPLIFIED (5 core columns only)
+  Use this when you just need clean source → logic → target output
+================================================================================
+
+SELECT
+    fm.SUBJECT_AREA         AS folder_name,
+    fm.MAPPING_NAME,
+    fm.SOURCE_NAME          AS source_table,
+    fm.SOURCE_FLD_NAME      AS source_column,
+    fm.EXPRESSION           AS transformation_logic,
+    fm.TARGET_NAME          AS target_table,
+    fm.TARGET_FLD_NAME      AS target_column,
+    fm.TARGET_FLD_PKEY      AS is_primary_key
+FROM SVC_INFA_PCRS_BLDM_BAT.REP_FLD_MAPPING  fm
+WHERE fm.MAPPING_NAME = 'M_TPR_CUST_BAL'
+ORDER BY fm.TARGET_FLD_NAME, fm.SOURCE_FLD_NAME;
+
+
+================================================================================
+  QUERY 2 — FULL DETAIL (includes transformation name, type, extra config)
+  Use this when you need SQL overrides, filter conditions, lookup details
+================================================================================
+
+SELECT
+    fm.SUBJECT_AREA                     AS folder_name,
+    fm.MAPPING_NAME,
+
+    -- SOURCE
+    fm.SOURCE_NAME                      AS source_table,
+    fm.SOURCE_FLD_NAME                  AS source_column,
+    fm.SOURCE_FLD_DTYPE                 AS source_datatype,
+
+    -- TRANSFORMATION
+    wi.INSTANCE_NAME                    AS transformation_name,
+    wi.WIDGET_TYPE_NAME                 AS transformation_type,
+    fm.EXPRESSION                       AS transformation_logic,
+    wa.ATTR_NAME                        AS extra_config_name,
+    wa.ATTR_VALUE                       AS extra_config_value,
+
+    -- TARGET
+    fm.TARGET_NAME                      AS target_table,
+    fm.TARGET_FLD_NAME                  AS target_column,
+    fm.TARGET_FLD_DTYPE                 AS target_datatype,
+    fm.TARGET_FLD_PKEY                  AS is_primary_key
+
+FROM SVC_INFA_PCRS_BLDM_BAT.REP_FLD_MAPPING       fm
+
+JOIN SVC_INFA_PCRS_BLDM_BAT.REP_ALL_MAPPINGS       m
+    ON fm.MAPPING_ID       = m.MAPPING_ID
+
+JOIN SVC_INFA_PCRS_BLDM_BAT.REP_WIDGET_INST        wi
+    ON wi.MAPPING_ID       = m.MAPPING_ID
+
+LEFT JOIN SVC_INFA_PCRS_BLDM_BAT.REP_WIDGET_ATTR   wa
+    ON wa.WIDGET_ID        = wi.WIDGET_ID
+   AND wa.ATTR_VALUE IS NOT NULL
+   AND wa.ATTR_NAME IN (
+        'Sql Query',
+        'Filter Condition',
+        'Lookup condition',
+        'Lookup table name',
+        'Update Strategy Expression'
+   )
+
+WHERE fm.MAPPING_NAME = 'M_TPR_CUST_BAL'
+
+ORDER BY
+    fm.TARGET_FLD_NAME,
+    fm.SOURCE_FLD_NAME,
+    wi.INSTANCE_NAME;
+
+
+================================================================================
+  QUERY 3 — ALL MAPPINGS IN A FOLDER (not just one mapping)
+  Use this to get lineage for every mapping in the folder at once
+================================================================================
+
+SELECT
+    fm.SUBJECT_AREA         AS folder_name,
+    fm.MAPPING_NAME,
+    fm.SOURCE_NAME          AS source_table,
+    fm.SOURCE_FLD_NAME      AS source_column,
+    fm.SOURCE_FLD_DTYPE     AS source_datatype,
+    fm.EXPRESSION           AS transformation_logic,
+    fm.TARGET_NAME          AS target_table,
+    fm.TARGET_FLD_NAME      AS target_column,
+    fm.TARGET_FLD_DTYPE     AS target_datatype,
+    fm.TARGET_FLD_PKEY      AS is_primary_key
+FROM SVC_INFA_PCRS_BLDM_BAT.REP_FLD_MAPPING  fm
+WHERE fm.SUBJECT_AREA = 'ETL_PROJECT'
+ORDER BY
+    fm.MAPPING_NAME,
+    fm.TARGET_FLD_NAME,
+    fm.SOURCE_FLD_NAME;
+
+
+================================================================================
+  EXAMPLE OUTPUT  (for M_TPR_CUST_BAL)
+================================================================================
+
+  SOURCE_TABLE    SOURCE_COLUMN   TRANSFORMATION_LOGIC                          TARGET_TABLE      TARGET_COLUMN   IS_PK
+  ------------    -------------   --------------------------------------------  ----------------  -------------   -----
+  TPR_CUSTOMER    CUST_ID         (pass-through via SQ_TPR_CUST)               TT_CUST_BAL_STG   CUST_ID         1
+  TPR_CUSTOMER    CUST_FIRST_NM   LTRIM(RTRIM(CUST_FIRST_NM))||' '||           TT_CUST_BAL_STG   CUST_FULL_NM    0
+                                  LTRIM(RTRIM(CUST_LAST_NM))
+  TPR_ACCOUNT     ACCT_BAL_AMT    ACCT_BAL_AMT * EXCH_RATE                     TT_CUST_BAL_STG   BAL_USD_AMT     0
+  TPR_ACCOUNT     ACCT_BAL_AMT    CRC32(TO_CHAR(IN_CUST_ID)||'|'||             TT_CUST_BAL_STG   CRC_VAL         0
+                                  TO_CHAR(IN_BAL_AMT))
+  TPR_ACCOUNT     ACCT_STATUS_CD  (pass-through, filter applied)               TT_CUST_BAL_STG   ACCT_STATUS_CD  0
+  (system)        (none)          SYSDATE                                       TT_CUST_BAL_STG   ETL_INSERT_DT   0
+  (system)        (none)          $$ETL_BATCH_ID                                TT_CUST_BAL_STG   BATCH_ID        0
+
+
+================================================================================
+  HOW TO READ THE OUTPUT
+================================================================================
+
+  is_primary_key = 1   This target column is a primary key
+  is_primary_key = 0   Regular column, not a key
+
+  EXPRESSION = null    Column is a direct pass-through with no formula
+  EXPRESSION = value   This is the exact business rule applied to the column
+
+  extra_config_name + extra_config_value (Query 2 only):
+    Sql Query              = the SQL override written on the Source Qualifier
+    Filter Condition       = the condition used to filter rows out
+    Lookup table name      = the table the Lookup queries against
+    Lookup condition       = the join condition for the Lookup
+    Update Strategy Expr   = DD_INSERT / DD_UPDATE / DD_DELETE / DD_REJECT
+
+
+================================================================================
+  NOTES
+================================================================================
+
+  1. Replace 'M_TPR_CUST_BAL' with your actual mapping name.
+  2. Replace 'ETL_PROJECT' with your actual folder name.
+  3. If querying from a different DB user, prefix every view name with:
+     SVC_INFA_PCRS_BLDM_BAT.
+  4. REP_FLD_MAPPING alone (Query 1) is sufficient for most lineage needs.
+     Use Query 2 only when you need SQL overrides and conditions as well.
+  5. If REP_FLD_MAPPING returns no rows, check:
+     - Mapping name spelling (it is case-sensitive)
+     - Whether the mapping is marked IS_VALID = 1 in REP_ALL_MAPPINGS
+
+
+================================================================================
+  LineageIQ Project  |  March 2026
+================================================================================
